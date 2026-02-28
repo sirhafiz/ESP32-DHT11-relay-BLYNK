@@ -1,0 +1,38 @@
+#define BLYNK_TEMPLATE_ID "TMPL69uxsFREi"           // Ganti kalau lain
+#define BLYNK_TEMPLATE_NAME "esp32relay"            // Nama project Blynk
+#define BLYNK_AUTH_TOKEN "KRjCe2I_zfEexrAiYnNyzV0kQlxZYRuU"  // Token kau
+
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+#define RELAY_PIN 18         // Pin relay
+
+char ssid[] = "HafizTM 2.4GHz";      // WiFi kau
+char pass[] = "h@f1z5335";           // Password WiFi
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("ESP32 + Blynk Relay Control Siap!");
+
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, HIGH);   // Mula OFF (active LOW)
+
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  Serial.println("Sedang sambung ke Blynk...");
+}
+
+void loop() {
+  Blynk.run();   // Wajib sync Blynk
+}
+
+// Fungsi ni auto panggil bila tekan switch/button di Blynk (V0)
+BLYNK_WRITE(V0) {
+  int status = param.asInt();   // 0 = OFF, 1 = ON dari Blynk
+
+  // Kawal relay (active LOW)
+  digitalWrite(RELAY_PIN, status ? LOW : HIGH);
+
+  Serial.print("Relay dari Blynk: ");
+  Serial.println(status ? "ON (klik!)" : "OFF");
+}
