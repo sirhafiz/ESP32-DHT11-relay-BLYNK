@@ -1,6 +1,6 @@
-#define BLYNK_TEMPLATE_ID "TMPLxxxxxxxxxxxxxx"
-#define BLYNK_TEMPLATE_NAME "Auto Relay Suhu"
-#define BLYNK_AUTH_TOKEN "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#define BLYNK_TEMPLATE_ID "TEMPLATE_ID"
+#define BLYNK_TEMPLATE_NAME "TEMPLATE_NAM"
+#define BLYNK_AUTH_TOKEN "AUTH_TOKEN"
 
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
@@ -10,38 +10,23 @@
 #define DHTTYPE DHT11
 #define RELAY_PIN 18
 
-char ssid[] = "HafizTM 2.4GHz";
-char pass[] = "h@f1z5335";
+char ssid[] = "wifi name";
+char pass[] = "password wifi";
 
 DHT dht(DHTPIN, DHTTYPE);
 
-bool relayAuto = true;  // Auto mode mula
-
-BLYNK_WRITE(V2) {  // V2 untuk switch manual/auto
-  relayAuto = param.asInt();
-  Serial.print("Mode: ");
-  Serial.println(relayAuto ? "AUTO" : "MANUAL");
-}
-
-BLYNK_WRITE(V3) {  // V3 untuk force ON/OFF kalau manual
-  if (!relayAuto) {
-    int status = param.asInt();
-    digitalWrite(RELAY_PIN, status ? LOW : HIGH);
-    Serial.print("Relay MANUAL: ");
-    Serial.println(status ? "ON" : "OFF");
-  }
-}
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("ESP32 + DHT11 + Relay + Blynk Siap!");
+  Serial.println("ESP32 + DHT11 + Relay AUTO + Blynk Siap!");
 
   dht.begin();
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, HIGH);  // OFF mula
+  digitalWrite(RELAY_PIN, HIGH);  // Mula OFF (active LOW relay)
 
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  Serial.println("Sedang sambung ke Blynk...");
 }
 
 void loop() {
@@ -51,24 +36,28 @@ void loop() {
   float kelembapan = dht.readHumidity();
 
   if (isnan(suhu) || isnan(kelembapan)) {
-    Serial.println("Gagal baca DHT11!");
-    delay(2000);
-    return;
+    Serial.println("Gagal baca DHT11! Semak wiring/sensor.");
+  } else { 
+  Serial.print("Suhu: ");
+  Serial.print(suhu);
+  Serial.print(" °C | Kelembapan: ");
+  Serial.print(kelembapan);
+  Serial.print(" % | Relay: ");
+  Serial.println(digitalRead(RELAY_PIN) == LOW ? "ON" : "OFF");
   }
 
-  Blynk.virtualWrite(V0, suhu);
-  Blynk.virtualWrite(V1, kelembapan);
+  // Hantar data ke Blynk (monitor je)
+  Blynk.virtualWrite(V0, suhu);       // tgk Gauge suhu
+  Blynk.virtualWrite(V1, kelembapan); // tgk Gauge kelembapan
 
-  if (relayAuto) {
-    if (suhu > 30) {
-      digitalWrite(RELAY_PIN, LOW);  // ON
-    } else {
-      digitalWrite(RELAY_PIN, HIGH); // OFF
-    }
+  // Auto control relay ikut suhu
+  if (suhu > 40) {
+    digitalWrite(RELAY_PIN, LOW);     // Relay ON (active LOW)
+    Serial.println("SUHU TINGGI! Relay ON");
+  } else {
+    digitalWrite(RELAY_PIN, HIGH);    // Relay OFF
+    Serial.println("Suhu normal, Relay OFF");
   }
 
-  Serial.print("Suhu: "); Serial.print(suhu); Serial.print(" °C | ");
-  Serial.print("Relay: "); Serial.println(digitalRead(RELAY_PIN) == LOW ? "ON" : "OFF");
-
-  delay(2000);
+   delay(2000);  // Update setiap 2 saat
 }
